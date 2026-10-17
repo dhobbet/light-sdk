@@ -56,6 +56,13 @@ android {
         }
     }
 
+    packaging {
+        resources {
+            excludes += "META-INF/INDEX.LIST"
+            excludes += "META-INF/io.netty.*"
+        }
+    }
+
     lint {
         warningsAsErrors = false
         error += "RestrictedApi"
@@ -75,6 +82,8 @@ kotlin {
 
 dependencies {
     implementation(project(":sdk:client"))
+    implementation(libs.ktor.server.core)
+    implementation(libs.ktor.server.netty)
     testImplementation(libs.kotlin.test)
     ksp(libs.androidx.room.compiler)
 }
