@@ -48,18 +48,7 @@ internal class PendingPlayerCommands {
             released = true
             player = null
             pending.clear()
-            if (_availability.value != LightAudioPlayerAvailability.Refused) {
-                _availability.value = LightAudioPlayerAvailability.Released
-            }
-        }
-    }
-
-    fun refuse() {
-        synchronized(this) {
-            released = true
-            player = null
-            pending.clear()
-            _availability.value = LightAudioPlayerAvailability.Refused
+            _availability.value = LightAudioPlayerAvailability.Released
         }
     }
 

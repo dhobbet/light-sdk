@@ -9,7 +9,6 @@ import androidx.compose.ui.composed
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.semantics.Role
-import com.thelightphone.sdk.ContextLightVibrator
 
 /**
  * Will be periodically set based on server preferences, see:
@@ -36,7 +35,7 @@ fun Modifier.lightClickable(
         awaitEachGesture {
             // Fire on finger-down like LightOS
             awaitFirstDown(requireUnconsumed = false)
-            ContextLightVibrator(context).click()
+            LightHapticFeedback.click(context)
         }
     }.clickable(
         interactionSource = null,

@@ -36,11 +36,11 @@ This section zooms in on the components and their relationships:
 │       ▼                                                         │
 │  DefaultLightAudio : LightAudio                                 │
 │      wraps SealedLightActivity                                  │
-│       │  .newPlayer(spec)                                       │
+│       │  .newPlayer(usage, playback)                            │
 │       │                                                         │
 │       ├── checks ──▶ CAPABILITY_DETACHED_AUDIO marker           │
 │       ├── opens ───▶ DetachedSessionState                       │
-│       │              └── stages and retains the session spec    │
+│       │              └── also holds the live session's usage    │
 │       ▼                                                         │
 │  LightAudioPlayer                                               │
 │       │    wraps a media3 Player implementation                 │
@@ -100,8 +100,7 @@ Detached audio wraps media3's `MediaSessionService`, described in the [official 
 Being in the same process allows the tool code and the service to access the same `DetachedSessionState` instance, which is responsible for:
 
 - enforcing one detached handle
-- staging the requested player spec for service `onCreate`
-- recording the live session's full spec, including usage and cache
+- recording the live session's audio usage
 - telling the service whether a tool still holds the detached handle.
 
 The public player API is backed by media3's `Player` interface.
@@ -117,8 +116,6 @@ The SDK maps its audio API onto the media3 components as follows:
 - Releasing `LightAudioPlayer` closes its controller and handle without releasing the service-owned player.
 
 The controller identifies itself as a tool controller and sends its `LightAudioUsage` through connection hints. Other platform controllers, such as Bluetooth, may connect to the session, but they do not own the SDK's detached handle or select its audio usage.
-
-`LightPlayerSpec` is staged on `DetachedSessionState` before the controller starts the service. Reconnecting must match the live session spec.
 
 ## Foreground-service notification on LP3
 
@@ -154,7 +151,7 @@ Before inspecting the queue, a tool waits for `availability` to become `Ready`, 
 
 `release()` only disconnects a detached handle. A tool that intends to end detached playback calls `stop()` first. Once the idle rule has stopped the service, restoring queue and position is the tool's responsibility.
 
-A live session retains its full `LightPlayerSpec`. Reconnecting with a different usage or cache throws synchronously instead of silently changing the active player's configuration.
+A live session also retains its `LightAudioUsage`. Reconnecting with a different usage throws synchronously instead of silently changing or ignoring the live session's audio attributes.
 
 ## Playback errors
 

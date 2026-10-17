@@ -135,7 +135,7 @@ class PlayerScreen(
                             PlayerController.previousChapter()
                         }
                         ControlButton(LightIcons.SKIP_BACKWARD_FIFTEEN, "15 SEC") {
-                            PlayerController.skipBy(-15_000L)
+                            PlayerController.skipBack()
                         }
                         ControlButton(
                             icon = if (showsThisBook && state.isPlaying) LightIcons.PAUSE else LightIcons.PLAY,
@@ -145,7 +145,7 @@ class PlayerScreen(
                             PlayerController.togglePlayPause()
                         }
                         ControlButton(LightIcons.SKIP_FORWARD_FIFTEEN, "15 SEC") {
-                            PlayerController.skipBy(15_000L)
+                            PlayerController.skipForward()
                         }
                         ControlButton(LightIcons.FAST_FORWARD, "CHAPTER") {
                             PlayerController.nextChapter()

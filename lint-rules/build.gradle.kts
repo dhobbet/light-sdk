@@ -5,7 +5,7 @@ plugins {
 group = "com.thelightphone"
 version = "1.0-SNAPSHOT"
 
-val lintVersion = "32.3.3"
+val lintVersion = "31.13.2"
 
 dependencies {
     compileOnly("com.android.tools.lint:lint-api:$lintVersion")

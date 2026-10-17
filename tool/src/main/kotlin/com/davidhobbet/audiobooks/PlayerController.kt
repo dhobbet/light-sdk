@@ -7,7 +7,6 @@ import com.thelightphone.sdk.audio.LightAudioPlayer
 import com.thelightphone.sdk.audio.LightAudioSource
 import com.thelightphone.sdk.audio.LightAudioUsage
 import com.thelightphone.sdk.audio.LightMediaMetadata
-import com.thelightphone.sdk.audio.LightPlayerSpec
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -71,18 +70,15 @@ object PlayerController {
 
     /**
      * Create the tool's one detached player, or reconnect to a live detached
-     * session (the spec is constant, as reconnection requires). Safe to call
-     * from every screen; only the first call does work. The handle is kept for
-     * the life of the process: releasing it would not stop detached playback,
-     * and every screen shares it.
+     * session. Safe to call from every screen; only the first call does work.
+     * The handle is kept for the life of the process: releasing it would not
+     * stop detached playback, and every screen shares it.
      */
     fun bind(audio: LightAudio) {
         if (player != null) return
         val p = audio.newPlayer(
-            LightPlayerSpec(
-                usage = LightAudioUsage.Speech,
-                playback = LightAudioPlayback.Detached,
-            )
+            usage = LightAudioUsage.Speech,
+            playback = LightAudioPlayback.Detached,
         )
         p.speed = speedFlow.value
         player = p
@@ -91,39 +87,43 @@ object PlayerController {
     }
 
     /**
-     * Show [book] in the player: reconnect to it if its queue is already live,
-     * otherwise load it at the saved resume point, paused.
+     * Show [book] in the player: reconnect to it if its queue is already the
+     * live detached session, otherwise load it at the saved resume point, paused.
      */
     fun openBook(book: Book) {
         val p = player ?: return
         scope.launch {
             if (!p.awaitReady()) return@launch
-            val firstId = p.queue.value.firstOrNull()?.id
-            if (firstId != null && firstId.startsWith(book.id + ID_SEPARATOR)) {
+            val store = progressStore
+            val liveBookId = store?.loadLastBook()
+            if (liveBookId == book.id && p.currentMediaItemIndex.value >= 0) {
+                // The detached session is already playing this book.
                 currentBook.value = book
                 return@launch
             }
             saveNow()
-            val saved = progressStore?.loadProgress(book.id)
+            val saved = store?.loadProgress(book.id)
             val start = (saved?.chapterIndex ?: 0).coerceIn(0, book.chapters.lastIndex)
             currentBook.value = book
-            p.setMediaQueue(book.chapters.map { chapter -> queueItem(book, chapter) }, startIndex = start)
+            store?.saveLastBook(book.id)
+            p.setMediaQueue(book.chapters.map(::queueItem), startIndex = start)
             val position = saved?.positionMs ?: 0L
             if (position > 0L) p.seekTo(position)
         }
     }
 
     /**
-     * After a tool relaunch with a detached session still playing, recover
-     * which book the live queue belongs to.
+     * After a tool relaunch with a detached session still live, recover which
+     * book the session belongs to (the last book this tool opened).
      */
     fun recoverBook(books: List<Book>) {
         if (currentBook.value != null) return
         val p = player ?: return
         scope.launch {
             if (!p.awaitReady()) return@launch
-            val firstId = p.queue.value.firstOrNull()?.id ?: return@launch
-            currentBook.value = books.firstOrNull { firstId.startsWith(it.id + ID_SEPARATOR) }
+            if (p.currentMediaItemIndex.value < 0) return@launch
+            val liveBookId = progressStore?.loadLastBook() ?: return@launch
+            currentBook.value = books.firstOrNull { it.id == liveBookId }
         }
     }
 
@@ -142,11 +142,28 @@ object PlayerController {
     /** Restarts the current chapter; pressed again near its start, goes back one. */
     fun previousChapter() { player?.skipToPrevious() }
 
-    fun jumpToChapter(index: Int) { player?.seekToDefaultPosition(index.coerceAtLeast(0)) }
+    /** Seeks backward 15 seconds within the chapter. */
+    fun skipBack() { player?.skipBack() }
 
-    fun skipBy(deltaMs: Long) {
+    /** Seeks forward 15 seconds within the chapter. */
+    fun skipForward() { player?.skipForward() }
+
+    /** Jumps to a chapter. Adjacent jumps keep the queue; others reload it. */
+    fun jumpToChapter(index: Int) {
         val p = player ?: return
-        p.seekTo((p.positionMs.value + deltaMs).coerceAtLeast(0L))
+        val book = currentBook.value ?: return
+        val target = index.coerceIn(0, book.chapters.lastIndex)
+        val current = p.currentMediaItemIndex.value
+        when (target) {
+            current -> return
+            current + 1 -> p.skipToNext()
+            current - 1 -> p.skipToPrevious()
+            else -> {
+                val wasPlaying = p.isPlaying.value
+                p.setMediaQueue(book.chapters.map(::queueItem), startIndex = target)
+                if (wasPlaying) p.play()
+            }
+        }
     }
 
     fun cycleSpeed() {
@@ -229,15 +246,12 @@ object PlayerController {
         progressStore?.saveProgress(book.id, BookProgress(index, p.positionMs.value))
     }
 
-    private fun queueItem(book: Book, chapter: Chapter): LightAudioItem = LightAudioItem(
-        id = book.id + ID_SEPARATOR + chapter.index + ID_SEPARATOR + chapter.file.name,
+    private fun queueItem(chapter: Chapter): LightAudioItem = LightAudioItem(
         source = LightAudioSource.FileSource(chapter.file),
         metadata = LightMediaMetadata(
             title = chapter.title,
-            album = book.title,
-            artist = book.title,
+            album = currentBook.value?.title,
+            artist = currentBook.value?.title,
         ),
     )
-
-    private const val ID_SEPARATOR = "::"
 }

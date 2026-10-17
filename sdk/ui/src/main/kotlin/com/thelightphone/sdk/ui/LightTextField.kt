@@ -7,28 +7,14 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.Immutable
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
-import androidx.compose.ui.unit.Dp
 
 private const val UNDERLINE_THICKNESS_PX = 3f
 private const val UNDERLINE_WIDTH_FRACTION = 0.8f
 
 private const val VALUE_TO_UNDERLINE_GAP_GRID_UNITS = 0.5f
-
-/**
- * Configuration options for the underline in [LightTextField].
- * Properties left `null` will fall back to default SDK values.
- */
-@Immutable
-data class LightTextFieldUnderlineStyle(
-    val widthFraction: Float? = null,
-    val thickness: Dp? = null,
-    val color: Color? = null,
-)
 
 /**
  * Read-only field used in conjunction with LightTextInputEditor to show a value that can be edited by tapping and opening the editor
@@ -41,20 +27,13 @@ fun LightTextField(
     placeholder: String,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
-    labelModifier: Modifier? = null,
-    underlineStyleOverrides: LightTextFieldUnderlineStyle? = null,
 ) {
     val colors = LightThemeTokens.colors
-
-    val finalUnderlineFraction = underlineStyleOverrides?.widthFraction ?: UNDERLINE_WIDTH_FRACTION
-    val finalUnderlineThickness = underlineStyleOverrides?.thickness ?: UNDERLINE_THICKNESS_PX.designVerticalPxToDp()
-    val finalUnderlineColor = underlineStyleOverrides?.color ?: colors.content
-
     Column(modifier = modifier.fillMaxWidth()) {
         LightText(
             text = label,
             variant = LightTextVariant.Detail,
-            modifier = labelModifier ?: Modifier.padding(top = 1f.gridUnitsAsDp()),
+            modifier = Modifier.padding(top = 1f.gridUnitsAsDp()),
         )
         val isPlaceholder = value.isBlank()
         Column(
@@ -73,9 +52,9 @@ fun LightTextField(
             Spacer(modifier = Modifier.height(VALUE_TO_UNDERLINE_GAP_GRID_UNITS.gridUnitsAsDp()))
             Spacer(
                 modifier = Modifier
-                    .fillMaxWidth(finalUnderlineFraction)
-                    .height(finalUnderlineThickness)
-                    .background(finalUnderlineColor),
+                    .fillMaxWidth(UNDERLINE_WIDTH_FRACTION)
+                    .height(UNDERLINE_THICKNESS_PX.designVerticalPxToDp())
+                    .background(colors.content),
             )
         }
     }

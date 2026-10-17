@@ -237,9 +237,7 @@ class SealedLightContext(internal val androidContext: Context) {
  * Wrapper class to pass around an instance of LightActivity without exposing it to
  * user code. Sorry! :)
  */
-class SealedLightActivity(internal val activity: LightActivity) {
-    val vibrator: LightVibrator by lazy { ContextLightVibrator(activity.applicationContext) }
-}
+class SealedLightActivity(internal val activity: LightActivity)
 
 internal val Context.dataStore by preferencesDataStore(
     name = "DEFAULT_DATASTORE"

@@ -1,2 +1,0 @@
-# Filled in from the SDK version catalog by processResources.
-${media3Version}

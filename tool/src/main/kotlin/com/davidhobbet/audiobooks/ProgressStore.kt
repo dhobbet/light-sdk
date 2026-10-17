@@ -13,6 +13,7 @@ data class BookProgress(val chapterIndex: Int, val positionMs: Long)
 class ProgressStore(private val dataStore: DataStore<Preferences>) {
 
     private val speedKey = floatPreferencesKey("playback.speed")
+    private val lastBookKey = stringPreferencesKey("playback.lastBook")
 
     private fun progressKey(bookId: String) = stringPreferencesKey("$PROGRESS_PREFIX$bookId")
 
@@ -33,6 +34,13 @@ class ProgressStore(private val dataStore: DataStore<Preferences>) {
             key.name.removePrefix(PROGRESS_PREFIX) to progress
         }.toMap()
     }
+
+
+    suspend fun saveLastBook(bookId: String) {
+        dataStore.edit { prefs -> prefs[lastBookKey] = bookId }
+    }
+
+    suspend fun loadLastBook(): String? = dataStore.data.first()[lastBookKey]
 
     suspend fun saveSpeed(speed: Float) {
         dataStore.edit { prefs -> prefs[speedKey] = speed }
