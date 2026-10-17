@@ -23,7 +23,37 @@ plugins {
     alias(libs.plugins.light.sdk)
 }
 
+// R8 rules for the Ktor/Netty wi-fi upload server. Netty optionally integrates
+// with server-side facilities that do not exist on Android (native OpenSSL,
+// Flight Recorder, JMX, log4j, BlockHound); the code paths referencing them are
+// never taken on device. The Light builder stages only the tool sources and
+// build files, so the rules are generated here instead of shipped as a file.
+val nettyR8Rules = layout.buildDirectory.file("generated/netty-r8-rules.pro").get().asFile
+nettyR8Rules.parentFile.mkdirs()
+nettyR8Rules.writeText(
+    """
+    -dontwarn io.netty.internal.tcnative.**
+    -dontwarn java.lang.management.**
+    -dontwarn jdk.jfr.**
+    -dontwarn org.apache.log4j.**
+    -dontwarn org.apache.logging.log4j.**
+    -dontwarn reactor.blockhound.**
+    -dontwarn org.eclipse.jetty.alpn.**
+    -dontwarn org.eclipse.jetty.npn.**
+    -dontwarn org.conscrypt.**
+    -dontwarn com.aayushatharva.brotli4j.**
+    -dontwarn com.github.luben.zstd.**
+    -dontwarn net.jpountz.**
+    -dontwarn com.ning.compress.**
+    -dontwarn org.jctools.**
+    -keep class io.netty.channel.socket.nio.** { *; }
+    -keep class io.netty.channel.nio.** { *; }
+    -keepclassmembers class io.netty.util.** { *; }
+    """.trimIndent()
+)
+
 android {
+
     compileSdk = rootProject.ext["compileSdk"] as Int
 
     signingConfigs {
@@ -51,7 +81,7 @@ android {
         release {
             isMinifyEnabled = true
             isShrinkResources = true
-            proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
+            proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), nettyR8Rules)
             signingConfig = signingConfigs.getByName("lightsdkDev")
         }
     }
