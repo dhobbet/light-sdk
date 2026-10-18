@@ -42,6 +42,7 @@ class HomeScreenViewModel(
 
     val books = MutableStateFlow<List<Book>>(emptyList())
     val progress = MutableStateFlow<Map<String, BookProgress>>(emptyMap())
+    val inboxChapters = MutableStateFlow(0)
 
     init {
         PlayerController.attach(progressStore)
@@ -56,9 +57,17 @@ class HomeScreenViewModel(
         PlayerController.onAppPaused()
     }
 
+    fun fileInboxAs(title: String) {
+        viewModelScope.launch {
+            withContext(Dispatchers.IO) { library.fileInboxAs(title) }
+            refresh()
+        }
+    }
+
     fun refresh() {
         viewModelScope.launch {
             val scanned = withContext(Dispatchers.IO) { library.scan() }
+            inboxChapters.value = withContext(Dispatchers.IO) { library.pendingInboxChapters() }
             books.value = scanned
             progress.value = progressStore.loadAllProgress()
             PlayerController.recoverBook(scanned)
@@ -97,6 +106,30 @@ class HomeScreen(private val sealedActivity: SealedLightActivity) :
                         center = LightTopBarCenter.Text("AUDIOBOOKS"),
                         modifier = Modifier.padding(bottom = 1f.gridUnitsAsDp()),
                     )
+
+                    val inboxCount by viewModel.inboxChapters.collectAsState()
+                    if (inboxCount > 0) {
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .lightClickable {
+                                    navigateTo(::BookTitleEditorScreen) { title ->
+                                        if (!title.isNullOrBlank()) viewModel.fileInboxAs(title)
+                                    }
+                                }
+                                .padding(horizontal = 1f.gridUnitsAsDp(), vertical = 0.75f.gridUnitsAsDp()),
+                        ) {
+                            LightText(
+                                text = "NEW BOOK UPLOADED",
+                                variant = LightTextVariant.Copy,
+                            )
+                            LightText(
+                                text = "$inboxCount CHAPTERS · TAP TO NAME THE BOOK",
+                                variant = LightTextVariant.Detail,
+                                lighten = true,
+                            )
+                        }
+                    }
 
                     Box(modifier = Modifier.weight(1f)) {
                         if (books.isEmpty()) {

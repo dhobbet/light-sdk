@@ -20,9 +20,32 @@ data class Book(
  * One folder per book, one MP3 per chapter, chapters ordered by filename
  * (numerically aware, so "Chapter 2" sorts before "Chapter 10").
  */
-class AudiobookLibrary(filesDir: File) {
+class AudiobookLibrary(private val filesDir: File) {
 
-    val root: File = File(filesDir, "audiobooks").also { it.mkdirs() }
+    /** Books live under files/shared so the LightOS Tool Manager can reach them. */
+    val root: File = File(File(filesDir, InboxProcessor.SHARED_DIR), InboxProcessor.BOOKS_DIR)
+        .also { it.mkdirs() }
+
+    init {
+        migrateLegacyBooks()
+    }
+
+    /** Move books stored by older versions (files/audiobooks) into the shared root. */
+    private fun migrateLegacyBooks() {
+        val legacy = File(filesDir, "audiobooks")
+        if (!legacy.isDirectory) return
+        legacy.listFiles()?.forEach { entry ->
+            val target = File(root, entry.name)
+            if (!target.exists()) entry.renameTo(target)
+        }
+        legacy.listFiles()?.isEmpty()?.let { if (it) legacy.delete() }
+    }
+
+    /** MP3 chapters uploaded through the Tool Manager, waiting to be named. */
+    fun pendingInboxChapters(): Int = InboxProcessor.pendingChapters(filesDir)
+
+    /** Files the inbox chapters into a book named [title]. */
+    fun fileInboxAs(title: String): Int = InboxProcessor.fileAs(filesDir, title)
 
     fun scan(): List<Book> =
         root.listFiles { f: File -> f.isDirectory }

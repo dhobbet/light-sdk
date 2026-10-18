@@ -11,7 +11,10 @@ chapters ordered by filename. Built in the `tool` module of
 - Player: play/pause, previous/next chapter, skip ±15 seconds, chapter list
 - Remembers position per book; auto-advances chapters
 - Playback speed (1x / 1.25x / 1.5x / 2x) and sleep timer (15 / 30 / 60 min)
-- Loads books over wi-fi: a small upload page served by the tool itself
+- Loads books through the LightOS Tool Manager (primary): name the book,
+  upload its MP3 chapters, and they're filed into the library automatically -
+  no network code involved
+- Also loads books over wi-fi (fallback): a small upload page served by the tool itself
   (enter the address shown on the LOAD BOOKS screen from a computer on the
   same network; nothing ever leaves the device)
 - Background playback: uses the SDK's detached audio player
@@ -50,4 +53,4 @@ storage on the device.
 ## Submission status
 
 Prepared for the Light Tool Library (dashboard → account → developer
-account). versionCode 2, versionName 1.1.0.
+account). versionCode 3, versionName 1.2.0.
